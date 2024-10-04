@@ -1,0 +1,48 @@
+---
+title: "p8105_hw3_mh4588.Rmd"
+author: "Maggie Hsu"
+date: "`r Sys.Date()`"
+output: github_document
+---
+
+# Problem 1
+The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
+
+### Data Exploration
+```{r load data and packages}
+library(tidyverse) #Import the Tidyverse library
+library(p8105.datasets)
+data("ny_noaa") #Load NOAA data from the datasets library
+```
+The dataset "ny_noaa" consists of `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` variables, which are: `r names(ny_noaa)`. These variables describe each observation through its ID, date observed, and the levels of precipitation, snowfall, snow depth, and maximum/minimum temperatures. 
+
+Ensure observations for temperature, precipitation, and snowfall are given in reasonable units.
+For snowfall, what are the most commonly observed values? Why?
+
+### Data Cleaning and Observations
+```{r noaa cleaning}
+ny_noaa = mutate(ny_noaa, date = ymd(pull(ny_noaa, var=date))) #convert dates to Date format so it can be manipulated
+ny_noaa = mutate(ny_noaa, year = year(pull(ny_noaa, var=date)), month = month(pull(ny_noaa, var=date)), day = day(pull(ny_noaa, var=date))) #I can't use the pipe operator because R won't add the columns - ask in office hours
+
+#Most commonly observed values for snowfall 
+```
+Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+### Average Maximum Temperatures in January and July By Station and Year
+```{r january july}
+
+```
+
+Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) 
+### Maximum vs. Minimum Temperatures
+```{r tmax tmin}
+
+# Tmax vs Tmin
+```
+
+### Distribution of Snowfall
+make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+```{r snowfall}
+#Distribution of snowfall values by year
+```
+
+# Problem 2
