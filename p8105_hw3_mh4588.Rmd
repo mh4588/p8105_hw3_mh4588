@@ -10,25 +10,65 @@ The goal is to do some exploration of this dataset. To that end, write a short d
 
 ### Data Exploration
 ```{r load data and packages}
-library(tidyverse) #Import the Tidyverse library
+library(tidyverse) #Import the Tidyverse library and additional libraries
 library(p8105.datasets)
+library(ggridges)
+library(patchwork)
+
+
 data("ny_noaa") #Load NOAA data from the datasets library
 ```
-The dataset "ny_noaa" consists of `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` variables, which are: `r names(ny_noaa)`. These variables describe each observation through its ID, date observed, and the levels of precipitation, snowfall, snow depth, and maximum/minimum temperatures. 
+The dataset "ny_noaa" consists of `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` variables, which are: `r names(ny_noaa)`. These variables describe each observation through its ID, date observed, and the levels of precipitation, snowfall, snow depth, and maximum/minimum temperatures. From the summary statistics of this dataset, missing data is an issue for the weather variables (precipitation, snowfall, snow depth, and temperature extremes) due to the amount of NAs present.
+
+Summary Statistics Table:
+`r knitr::kable(summary(ny_noaa))`
+
+Tmax and Tmin have  tmax and tmin, which have  `r sum(is.na(pull(ny_noaa, var = tmax)))` and `r sum(is.na(pull(ny_noaa, var = tmin)))` NA values, respectively.
+
 
 Ensure observations for temperature, precipitation, and snowfall are given in reasonable units.
 For snowfall, what are the most commonly observed values? Why?
 
 ### Data Cleaning and Observations
 ```{r noaa cleaning}
-ny_noaa = mutate(ny_noaa, date = ymd(pull(ny_noaa, var=date))) #convert dates to Date format so it can be manipulated
-ny_noaa = mutate(ny_noaa, year = year(pull(ny_noaa, var=date)), month = month(pull(ny_noaa, var=date)), day = day(pull(ny_noaa, var=date))) #I can't use the pipe operator because R won't add the columns - ask in office hours
+
+#Created separate variables for year, month, and day and also converted minimum/maximum temperature variables into numeric values.
+ny_noaa = 
+  mutate(
+    ny_noaa,
+    date = ymd(date),
+    year = year(date), 
+    month = month(date), 
+    day = day(date),
+    tmax=as.numeric(tmax), 
+    tmin = as.numeric(tmin)
+    ) 
 
 #Most commonly observed values for snowfall 
+ny_noaa |>
+  count(snow)
 ```
+
+The most commonly observed value for snow is 0.
+
 Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
 ### Average Maximum Temperatures in January and July By Station and Year
 ```{r january july}
+january_tmax = #Average maximum temperature in January by year
+  ny_noaa |>
+  filter(month == 1) |>
+  ggplot(aes(x=year, y = tmax, color="name")) +
+  geom_point(alpha = .5) +
+  patchwork::theme(legend.position = "none")
+
+july_tmax= #Average maximum temperature in July by year
+  ny_noaa |>
+  filter(month == 7) |>
+  ggplot(aes(x=year, y = tmax, color="name")) +
+  geom_point(alpha = .5) +
+  patchwork::theme(legend.position = "none")
+
+january_tmax+july_tmax
 
 ```
 
@@ -43,6 +83,24 @@ Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a
 make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
 ```{r snowfall}
 #Distribution of snowfall values by year
+snowfall = ny_noaa |>
+  filter(snow > 0, snow < 100) |>
+  ggplot(aes(x=as.factor(year), y=snow))
+
+snowfall
 ```
 
 # Problem 2
+```{r nhanes}
+#Read in datasets
+covar <- read.csv(/data/nhanes_covar.csv)
+accel <- read.csv(/data/nhanes_accel.csv)
+
+```
+
+
+# Problem 3
+```{r citibike}
+
+
+```
