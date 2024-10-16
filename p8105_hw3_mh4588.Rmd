@@ -91,13 +91,55 @@ snowfall
 ```
 
 # Problem 2
-```{r nhanes}
+```{r nhanes cleaning}
 #Read in datasets
-covar <- read.csv(/data/nhanes_covar.csv)
-accel <- read.csv(/data/nhanes_accel.csv)
+covar <- read.csv("data/nhanes_covar.csv")
+accel <- read.csv("data/nhanes_accel.csv")
 
+#Clean the covar data frame
+#Rename rows and remove first four blank rows
+covar <- janitor::row_to_names(covar, 4) |>
+  filter(age >= 21) |> #Exclude participants under 21 years old
+  mutate( #Encode variables into appropriate classes
+    SEQN = as.numeric(SEQN),
+    sex = factor(sex, labels=c("male","female")),
+    age = as.numeric(age), 
+    BMI = as.numeric(BMI),
+    education = factor(education, labels = c("Less than High School","High School Equivalent", "More than High School")),
+  )
+
+#Clean accel data frame
+accel <- 
+
+#Merge frames based on SEQN
+nhanes <- left_join(covar,accel, by="SEQN") |>
+  #Remove rows with missing demographic values
+  drop_na(SEQN,sex,age,BMI,education)
+    
+    
 ```
 
+Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
+```{r nhanes table}
+#Set up table comparing the number of men and women in each level of education
+nhanes |>
+  janitor::tabyl(sex, education)
+
+#Visualization
+nhanes |>
+  group_by(sex, education) |>
+  ggplot(aes(x = education, y = sex, fill = sex)) + 
+    geom_bar(stat='identity') +
+   facet_grid(. ~sex)
+    
+```
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+```{r nhanes total activity}
+```
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+```{r nhanes 24 hour}
+
+```
 
 # Problem 3
 ```{r citibike}
