@@ -136,11 +136,12 @@ There is a negative association between activity level and age for all of the ob
 ```{r nhanes 24 hour}
 #Three-panel plot showing activity level over time
 nhanes_long |>
-  ggplot(aes(x=time, y=mims) + 
+  ggplot(aes(x=time, y=mims)) + 
   facet_grid( .~education) +  
   geom_point(aes(color = sex)) +
   geom_smooth(se = FALSE) +
   labs(title="Daily Activity Over 24 Hours by Age and Education Level", y="Activity (MIMS Units)", x="Time")
+  
 ```
 All of the education levels show a pattern where activity tends to start off at a moderate level, dips slightly before 500 minutes, and then increases shortly after 500 minutes. The activity level then stays relatively level (or slightly decreases for "Less than High School" participants) until roughly 1000 minutes in, where the activity level decreases until at a similar level to the starting activity level. 
 Male and female participants had similar activity patterns, although for "More than High School" the male participants showed a spike in activity around 500 minutes in while female participants showed a spike somewhat after 1000 minutes in. 
@@ -200,7 +201,7 @@ citibike |>
   ggplot(aes(x=month, y=duration, color=member_casual) 
   )+
   geom_boxplot() +
-  label(title="Citibike Usage Patterns in 2024")
+  labs(title="Citibike Usage Patterns in 2024")
 ```
 
 From this graphic, casual users tended to have a higher range of bike durations as compared to members, and had a higher minimum, maximum, and median for these values for both January and July 2024. The duration patterns were generally similar for both January and July, although for outliers, there were higher amounts of high-duration outliers for July 2024 as compared to January. 
