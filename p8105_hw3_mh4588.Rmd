@@ -8,23 +8,11 @@ output: github_document
 ```{r load data and packages}
 library(tidyverse) #Import the Tidyverse library and additional libraries
 library(p8105.datasets)
-library(ggridges)
 library(patchwork)
-
+#library(hexbin)
 
 data("ny_noaa") #Load NOAA data from the datasets library
 ```
-
-# Problem 1
-### Data Exploration
-```{r load data and packages}
-library(tidyverse) #Import the Tidyverse library and additional libraries
-library(p8105.datasets)
-library(ggridges)
-library(patchwork)
-
-
-data("ny_noaa") #Load NOAA data from the datasets library
 ```
 The dataset "ny_noaa" consists of `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` variables, which are: `r names(ny_noaa)`. These variables describe each observation through its ID, date observed, and the levels of precipitation, snowfall, snow depth, and maximum/minimum temperatures. From the summary statistics of this dataset, missing data is an issue for the weather variables (precipitation, snowfall, snow depth, and temperature extremes) due to the amount of NAs present.
 
@@ -51,18 +39,22 @@ ny_noaa |>
 
 The most commonly observed value for snow is 0 because most days in New York do not have any snow.
 
- Is there any observable / interpretable structure? Any outliers?
 
-### Average Maximum Temperatures in January and July By Station and Year
+### Average Maximum Temperatures in January and July
 
 ```{r tmax tmin}
 ny_noaa |>
   group_by(id, year, month) |>
   filter(month %in% c(1, 7)) |>
   summarize(mean_tmax = mean(tmax, na.rm = TRUE, color = id)) %>% 
-  ggplot(aes(x = year, y = mean_tmax, group = id)) + geom_point() + geom_path() + facet_grid(.~month) +
+  ggplot(aes(x = year, y = mean_tmax, group = id, color=year)) +
+  geom_point() + 
+  geom_path() + 
+  facet_grid(.~month)
   labs(title="Mean Maximum vs. Minimum Temperatures by Year", x="Year", y="Temperature")
 ```
+Although maximum and minumum temperatures tend to fluctuate over time, the mean minimum temperature shows an increase from 1980 to 2010 while the mean maximum temperature is stable. There also seems to be some extreme observations (such as a very low minimum for 1980 and 2005 and a very low maximum slightly before 1990)
+
 
 ### Distribution of Snowfall and Temperatures
 ```{r snowfall}
@@ -102,6 +94,12 @@ nhanes <- left_join(covar,accel, by="SEQN") |>
   #Remove rows with missing demographic values
   drop_na(SEQN,sex,age,BMI,education)
     
+#Create a long/tidy version of the nhanes dataframe
+nhanes_long <- pivot_longer(nhanes, min1:min1440, names_to = "time", values_to = "mims")
+
+nhanes_long = mutate(nhanes_long, time= str_sub(time, 4, -1))
+nhanes_long = mutate(nhanes_long, time= as.numeric(time)) |>
+drop_na(SEQN,sex,age,BMI,education, time, mims)
     
 ```
 
@@ -116,14 +114,36 @@ nhanes |>
     facet_grid(~education) + geom_boxplot()
     
 ```
-Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
-```{r nhanes total activity}
-nhanes = mutate(nhanes, activity = sum())
-```
-Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
-```{r nhanes 24 hour}
+Most participants were in the "More than High School" category as compared to the other two educational levels, while the amount of male and female participants were at similar levels, there were many more male participants at the High School level than female participants. 
 
+The median ages for male and female participants for Less than High School are similar, while for High School Equivalent the male participants tended to be younger than the female participants. For More than High School, the male and female participants' age distributions tended younger than for the other groups and had similar medians--although it was slightly lower for female participants. 
+
+```{r nhanes total activity}
+#Create a total activity variable by summing up individual minute activity values for all columns
+nhanes = mutate(nhanes, activity = rowSums(across(min1:min1440)))
+
+#Plot activity compared to age, sex, and education levels.
+nhanes |>
+    ggplot(aes(x=age, y=activity)) + 
+  facet_grid( .~education) +  
+  geom_point(aes(color = sex)) +
+  geom_smooth(se = FALSE) +
+  labs(title="Daily Activity Level by Age and Education Level", y="Activity (MIMS Units)", x="Age")
 ```
+There is a negative association between activity level and age for all of the observed education levels as the lines of best fit were all downward trending. It is interesting that in "High School Equivalent", activity levels increase until 40 but then decrease, while activity levels slightly increase at age 60 for "Less than High School" but then decrease again.
+
+
+```{r nhanes 24 hour}
+#Three-panel plot showing activity level over time
+nhanes_long |>
+  ggplot(aes(x=time, y=mims) + 
+  facet_grid( .~education) +  
+  geom_point(aes(color = sex)) +
+  geom_smooth(se = FALSE) +
+  labs(title="Daily Activity Over 24 Hours by Age and Education Level", y="Activity (MIMS Units)", x="Time")
+```
+All of the education levels show a pattern where activity tends to start off at a moderate level, dips slightly before 500 minutes, and then increases shortly after 500 minutes. The activity level then stays relatively level (or slightly decreases for "Less than High School" participants) until roughly 1000 minutes in, where the activity level decreases until at a similar level to the starting activity level. 
+Male and female participants had similar activity patterns, although for "More than High School" the male participants showed a spike in activity around 500 minutes in while female participants showed a spike somewhat after 1000 minutes in. 
 
 
 # Problem 3
@@ -146,33 +166,41 @@ citibike <- bind_rows(jan_2020, jan_2024, july_2020, july_2024)
 
 ```{r citibike table}
 citibike |>
-  group_by(member_casual, month) |>
+  group_by(member_casual, month) |> #Group by member types and summarize
   summarize(total_rides = n()) 
 ```
 There tend to be more citibike rides in July  as compared to in January for both members and casual riders, which may be due to warmer weather over the summer. Members have more overall rides as compared to casual users as members may be more inclined to regularly use citibikes, while there are either the same or more rides in 2024 overall as pandemic restrictions and quarantines in 2020 would have made people less likely to go out or rent bikes.
 
 ## The 5 most popular starting stations in July 2024
 ```{r station table}
-citibike |>
+citibike |> 
   filter(month=="July 2024") |>
-  group_by(start_station_name) |>
+  group_by(start_station_name) |> #Group by station name and number of rides per station
   summarize(originating_rides = n())|>
-  filter(min_rank(desc(originating_rides)) < 6)
+  filter(min_rank(desc(originating_rides)) < 6) 
 ```
 
-Make a plot to investigate the effects of day of the week, month, and year on median ride duration. This plot can include one or more panels, but should facilitate comparison across all variables of interest. Comment on your observations from this plot.
-```{r citibike plot 1, width=10}
+## Visualizations
+### Plot 1
+```{r citibike plot 1, fig.width=20}
 citibike |>
   group_by(month) |>
-  ggplot(
-    aes(x=weekdays, y=duration, color=weekdays)+ facet_grid( .~month)+ geom_boxplot() 
-    )
-
+  ggplot()+
+  geom_boxplot(aes(x=weekdays, y=duration, fill=weekdays))+ 
+  facet_grid( .~month) +
+  labs(title="Citibike Durations by Days of the Week", x ="Day of the Week", y="Duration")
 ```
+In general, there tended to be more rides on Saturday and Sunday as compared to the weekdays, especially on Tuesdays and Wednesdays. July has a wider range of ride durations and a higher maximum for both 2020 and 2024, suggesting that people may tend to ride bikes more over the summer as compared to January. There are also more long-duration outliers for July rides. 
 
+
+### Plot 2
 ```{r citibike plot 2}
 citibike |>
   filter(month == c("January 2024","July 2024")) |>
   ggplot(aes(x=month, y=duration, color=member_casual) 
-  )+geom_violin()
+  )+
+  geom_boxplot() +
+  label(title="Citibike Usage Patterns in 2024")
 ```
+
+From this graphic, casual users tended to have a higher range of bike durations as compared to members, and had a higher minimum, maximum, and median for these values for both January and July 2024. The duration patterns were generally similar for both January and July, although for outliers, there were higher amounts of high-duration outliers for July 2024 as compared to January. 
