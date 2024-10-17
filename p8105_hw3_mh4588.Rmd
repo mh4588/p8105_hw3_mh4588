@@ -4,10 +4,18 @@ author: "Maggie Hsu"
 date: "`r Sys.Date()`"
 output: github_document
 ---
+### Data Exploration
+```{r load data and packages}
+library(tidyverse) #Import the Tidyverse library and additional libraries
+library(p8105.datasets)
+library(ggridges)
+library(patchwork)
+
+
+data("ny_noaa") #Load NOAA data from the datasets library
+```
 
 # Problem 1
-The goal is to do some exploration of this dataset. To that end, write a short description of the dataset, noting the size and structure of the data, describing some key variables, and indicating the extent to which missing data is an issue. Then, do or answer the following (commenting on the results of each):
-
 ### Data Exploration
 ```{r load data and packages}
 library(tidyverse) #Import the Tidyverse library and additional libraries
@@ -20,14 +28,6 @@ data("ny_noaa") #Load NOAA data from the datasets library
 ```
 The dataset "ny_noaa" consists of `r nrow(ny_noaa)` rows and `r ncol(ny_noaa)` variables, which are: `r names(ny_noaa)`. These variables describe each observation through its ID, date observed, and the levels of precipitation, snowfall, snow depth, and maximum/minimum temperatures. From the summary statistics of this dataset, missing data is an issue for the weather variables (precipitation, snowfall, snow depth, and temperature extremes) due to the amount of NAs present.
 
-Summary Statistics Table:
-`r knitr::kable(summary(ny_noaa))`
-
-Tmax and Tmin have  tmax and tmin, which have  `r sum(is.na(pull(ny_noaa, var = tmax)))` and `r sum(is.na(pull(ny_noaa, var = tmin)))` NA values, respectively.
-
-
-Ensure observations for temperature, precipitation, and snowfall are given in reasonable units.
-For snowfall, what are the most commonly observed values? Why?
 
 ### Data Cleaning and Observations
 ```{r noaa cleaning}
@@ -49,45 +49,34 @@ ny_noaa |>
   count(snow)
 ```
 
-The most commonly observed value for snow is 0.
+The most commonly observed value for snow is 0 because most days in New York do not have any snow.
 
-Make a two-panel plot showing the average max temperature in January and in July in each station across years. Is there any observable / interpretable structure? Any outliers?
+ Is there any observable / interpretable structure? Any outliers?
+
 ### Average Maximum Temperatures in January and July By Station and Year
-```{r january july}
-january_tmax = #Average maximum temperature in January by year
-  ny_noaa |>
-  filter(month == 1) |>
-  ggplot(aes(x=year, y = tmax, color="name")) +
-  geom_point(alpha = .5) +
-  patchwork::theme(legend.position = "none")
 
-july_tmax= #Average maximum temperature in July by year
-  ny_noaa |>
-  filter(month == 7) |>
-  ggplot(aes(x=year, y = tmax, color="name")) +
-  geom_point(alpha = .5) +
-  patchwork::theme(legend.position = "none")
-
-january_tmax+july_tmax
-
-```
-
-Make a two-panel plot showing (i) tmax vs tmin for the full dataset (note that a scatterplot may not be the best option); and (ii) 
-### Maximum vs. Minimum Temperatures
 ```{r tmax tmin}
-
-# Tmax vs Tmin
+ny_noaa |>
+  group_by(id, year, month) |>
+  filter(month %in% c(1, 7)) |>
+  summarize(mean_tmax = mean(tmax, na.rm = TRUE, color = id)) %>% 
+  ggplot(aes(x = year, y = mean_tmax, group = id)) + geom_point() + geom_path() + facet_grid(.~month) +
+  labs(title="Mean Maximum vs. Minimum Temperatures by Year", x="Year", y="Temperature")
 ```
 
-### Distribution of Snowfall
-make a plot showing the distribution of snowfall values greater than 0 and less than 100 separately by year.
+### Distribution of Snowfall and Temperatures
 ```{r snowfall}
+#Plot temperatures
+temperatures = ny_noaa |>
+  ggplot(aes(x = tmin, y = tmax)) + geom_hex()
+  
 #Distribution of snowfall values by year
 snowfall = ny_noaa |>
   filter(snow > 0, snow < 100) |>
-  ggplot(aes(x=as.factor(year), y=snow))
+  ggplot(aes(x = as.factor(year), y = snow, fill=year)) +
+  geom_boxplot()
 
-snowfall
+temperatures + snowfall
 ```
 
 # Problem 2
@@ -96,7 +85,7 @@ snowfall
 covar <- read.csv("./data/nhanes_covar.csv")
 accel <- read.csv("./data/nhanes_accel.csv")
 
-#Clean the covar data frame
+#Clean data
 #Rename rows and remove first four blank rows
 covar <- janitor::row_to_names(covar, 4) |>
   filter(age >= 21) |> #Exclude participants under 21 years old
@@ -107,9 +96,6 @@ covar <- janitor::row_to_names(covar, 4) |>
     BMI = as.numeric(BMI),
     education = factor(education, labels = c("Less than High School","High School Equivalent", "More than High School")),
   )
-
-#Clean accel data frame
-accel <- 
 
 #Merge frames based on SEQN
 nhanes <- left_join(covar,accel, by="SEQN") |>
@@ -126,12 +112,17 @@ nhanes |>
 
 #Visualization
 nhanes |>
-  group_by(sex, education) |>
-  ggplot(aes(x = education, y = sex, fill = sex)) + 
-    geom_bar(stat='identity') +
-    facet_grid(~sex) +
-    scale_x_discrete(labels = scales::label_wrap(10))
+  ggplot(aes(x = sex, y = age, fill = sex)) + 
+    facet_grid(~education) + geom_boxplot()
     
+```
+Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
+```{r nhanes total activity}
+nhanes = mutate(nhanes, activity = sum())
+```
+Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
+```{r nhanes 24 hour}
+
 ```
 
 
@@ -151,7 +142,6 @@ july_2024 = mutate(july_2024, month = "July 2024")
 
 #Merge all datasets
 citibike <- bind_rows(jan_2020, jan_2024, july_2020, july_2024)
-citibike = mutate(month = as.factor(month))
 ```
 
 ```{r citibike table}
@@ -159,7 +149,30 @@ citibike |>
   group_by(member_casual, month) |>
   summarize(total_rides = n()) 
 ```
+There tend to be more citibike rides in July  as compared to in January for both members and casual riders, which may be due to warmer weather over the summer. Members have more overall rides as compared to casual users as members may be more inclined to regularly use citibikes, while there are either the same or more rides in 2024 overall as pandemic restrictions and quarantines in 2020 would have made people less likely to go out or rent bikes.
 
+## The 5 most popular starting stations in July 2024
 ```{r station table}
+citibike |>
+  filter(month=="July 2024") |>
+  group_by(start_station_name) |>
+  summarize(originating_rides = n())|>
+  filter(min_rank(desc(originating_rides)) < 6)
+```
 
+Make a plot to investigate the effects of day of the week, month, and year on median ride duration. This plot can include one or more panels, but should facilitate comparison across all variables of interest. Comment on your observations from this plot.
+```{r citibike plot 1, width=10}
+citibike |>
+  group_by(month) |>
+  ggplot(
+    aes(x=weekdays, y=duration, color=weekdays)+ facet_grid( .~month)+ geom_boxplot() 
+    )
+
+```
+
+```{r citibike plot 2}
+citibike |>
+  filter(month == c("January 2024","July 2024")) |>
+  ggplot(aes(x=month, y=duration, color=member_casual) 
+  )+geom_violin()
 ```
