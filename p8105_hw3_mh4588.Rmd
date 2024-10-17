@@ -93,8 +93,8 @@ snowfall
 # Problem 2
 ```{r nhanes cleaning}
 #Read in datasets
-covar <- read.csv("data/nhanes_covar.csv")
-accel <- read.csv("data/nhanes_accel.csv")
+covar <- read.csv("./data/nhanes_covar.csv")
+accel <- read.csv("./data/nhanes_accel.csv")
 
 #Clean the covar data frame
 #Rename rows and remove first four blank rows
@@ -119,7 +119,6 @@ nhanes <- left_join(covar,accel, by="SEQN") |>
     
 ```
 
-Produce a reader-friendly table for the number of men and women in each education category, and create a visualization of the age distributions for men and women in each education category. Comment on these items.
 ```{r nhanes table}
 #Set up table comparing the number of men and women in each level of education
 nhanes |>
@@ -130,19 +129,37 @@ nhanes |>
   group_by(sex, education) |>
   ggplot(aes(x = education, y = sex, fill = sex)) + 
     geom_bar(stat='identity') +
-   facet_grid(. ~sex)
+    facet_grid(~sex) +
+    scale_x_discrete(labels = scales::label_wrap(10))
     
 ```
-Traditional analyses of accelerometer data focus on the total activity over the day. Using your tidied dataset, aggregate across minutes to create a total activity variable for each participant. Plot these total activities (y-axis) against age (x-axis); your plot should compare men to women and have separate panels for each education level. Include a trend line or a smooth to illustrate differences. Comment on your plot.
-```{r nhanes total activity}
-```
-Accelerometer data allows the inspection activity over the course of the day. Make a three-panel plot that shows the 24-hour activity time courses for each education level and use color to indicate sex. Describe in words any patterns or conclusions you can make based on this graph; including smooth trends may help identify differences.
-```{r nhanes 24 hour}
 
-```
 
 # Problem 3
 ```{r citibike}
+#Read in data
+jan_2020 <- read.csv("./data/citibike/Jan 2020 Citi.csv") 
+jan_2024 <- read.csv("./data/citibike/Jan 2020 Citi.csv")
+july_2020 <- read.csv("./data/citibike/July 2020 Citi.csv")
+july_2024 <- read.csv("./data/citibike/July 2024 Citi.csv")
 
+#Add identifier variables
+jan_2020 = mutate(jan_2020, month = "January 2020")
+jan_2024 = mutate(jan_2024, month = "January 2024")
+july_2020 = mutate(july_2020, month = "July 2020")
+july_2024 = mutate(july_2024, month = "July 2024")
+
+#Merge all datasets
+citibike <- bind_rows(jan_2020, jan_2024, july_2020, july_2024)
+citibike = mutate(month = as.factor(month))
+```
+
+```{r citibike table}
+citibike |>
+  group_by(member_casual, month) |>
+  summarize(total_rides = n()) 
+```
+
+```{r station table}
 
 ```
