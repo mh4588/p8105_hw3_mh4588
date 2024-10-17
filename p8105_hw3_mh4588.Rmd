@@ -9,7 +9,7 @@ output: github_document
 library(tidyverse) #Import the Tidyverse library and additional libraries
 library(p8105.datasets)
 library(patchwork)
-#library(hexbin)
+library(hexbin)
 
 data("ny_noaa") #Load NOAA data from the datasets library
 ```
